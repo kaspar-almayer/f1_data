@@ -1,71 +1,46 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import minimist from 'minimist';
+var argv = minimist(process.argv.slice(2));
+// -r   race number
+// -y   season
 
-let url = "";
+console.log(argv)
 
 let settings = { method: "Get" };
 
-
-let uberData = {};
-
-// fetch(`http://ergast.com/api/f1/2021/18/results.json`, settings)
-//     .then(res => res.json())
-//     .then((json) => {
-//         const drivers = json.MRData.RaceTable.Races[0].Results
-//         for (const driver of drivers) {
-//             fetch(`http://ergast.com/api/f1/2021/18/drivers/${driver.Driver.driverId}/laps.json?limit=100`, settings)
-//             .then(res => res.json())
-//             .then((json) => {
-//                 console.log(driver.Driver.code)
-//                 const laps = json.MRData.RaceTable.Races[0].Laps.map(lap => lap.Timings[0].time)
-//                 //uberData.push([driver.Driver.code, laps])
-//                 uberData[driver.Driver.code] = laps
-//             })
-            
-//         }
-//         setTimeout(() => { 
-//             console.log("after loop")
-//             fs.readFile('mexico_gp.json', (err, data) => {
-//                 if (err) throw err;
-//                 let fromFile = JSON.parse(data);
-//                 //console.log(driver.Driver.driverId)
-            
-//                 //fromFile.data[driver.Driver.code] = laps
-//                 fromFile.data = uberData
-            
-//                 let newData = JSON.stringify(fromFile, null, 2);
-            
-//                 fs.writeFile('mexico_gp.json', newData, (err) => {
-//                     if (err) throw err;
-//                     console.log('Data written to file');
-//                 });
-//             });
-//          }, 3000);
-//     })
-
-
-    fetch(`http://ergast.com/api/f1/2021/18/results.json`, settings)
+fetch(`http://ergast.com/api/f1/2023/${argv.r}/results.json`, settings)
     .then(res => res.json())
     .then((json) => {
-        const drivers = json.MRData.RaceTable.Races[0].Results
-        fs.readFile('mexico_gp.json', (err, data) => {
-            if (err) throw err;
-            let fromFile = JSON.parse(data);
-
-            const inOrder = drivers.map(driver => {
-                return {"driver": driver.Driver.code, "timings": fromFile.data[driver.Driver.code]}
+        const drivers = json.MRData.RaceTable.Races[0].Results.map(driver => { return {"driverId": driver.Driver.driverId, "driver": driver.Driver.code}})
+        const raceName = json.MRData.RaceTable.Races[0].raceName
+        for (const driver of drivers) {
+            fetch(`http://ergast.com/api/f1/2023/${argv.r}/drivers/${driver.driverId}/laps.json?limit=100`, settings)
+            .then(res => res.json())
+            .then((json) => {
+                console.log(driver.driverId)
+                const laps = json.MRData.RaceTable.Races[0]?.Laps.map(lap => lap.Timings[0].time)
+                const objIndex = drivers.findIndex((obj => obj.driver === driver.driver));
+                drivers[objIndex].timings = laps
             })
             
-            fromFile.data = inOrder
-        
-            let newData = JSON.stringify(fromFile, null, 2);
-        
-            fs.writeFile('mexico_gp.json', newData, (err) => {
+        }
+        setTimeout(() => { 
+            console.log("after loop")
+            fs.readFile('empty_data.json', (err, data) => {
                 if (err) throw err;
-                console.log('Data written to file');
+                let fromFile = JSON.parse(data);
+                fromFile = {
+                    raceName,
+                    data: drivers,
+                }
+            
+                let newData = JSON.stringify(fromFile, null, 2);
+            
+                fs.writeFile(`${argv.r}.json`, newData, (err) => {
+                    if (err) throw err;
+                    console.log('Data written to file');
+                });
             });
-        });
+         }, 3000);
     })
-
-
-
