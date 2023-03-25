@@ -1,5 +1,8 @@
 {
-  "raceName": "Bahrain Grand Prix",
+  "race_name": "Bahrain Grand Prix",
+  "id": 1,
+  "round": 1,
+  "short_name": "Bahrain GP",
   "data": [
     {
       "driverId": "max_verstappen",
