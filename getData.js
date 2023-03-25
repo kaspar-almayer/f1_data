@@ -14,6 +14,8 @@ fetch(`http://ergast.com/api/f1/2023/${argv.r}/results.json`, settings)
     .then((json) => {
         const drivers = json.MRData.RaceTable.Races[0].Results.map(driver => { return {"driverId": driver.Driver.driverId, "driver": driver.Driver.code}})
         const raceName = json.MRData.RaceTable.Races[0].raceName
+	const id = argv.r
+	const round = argv.r
         for (const driver of drivers) {
             fetch(`http://ergast.com/api/f1/2023/${argv.r}/drivers/${driver.driverId}/laps.json?limit=100`, settings)
             .then(res => res.json())
@@ -27,20 +29,18 @@ fetch(`http://ergast.com/api/f1/2023/${argv.r}/results.json`, settings)
         }
         setTimeout(() => { 
             console.log("after loop")
-            fs.readFile('empty_data.json', (err, data) => {
+            const fromFile = {
+                race_name: raceName,
+                short_name: "",
+                id,
+                round,
+                data: drivers,
+            }
+            let newData = JSON.stringify(fromFile, null, 2);
+            fs.writeFile(`${argv.r}.json`, newData, (err) => {
                 if (err) throw err;
-                let fromFile = JSON.parse(data);
-                fromFile = {
-                    raceName,
-                    data: drivers,
-                }
-            
-                let newData = JSON.stringify(fromFile, null, 2);
-            
-                fs.writeFile(`${argv.r}.json`, newData, (err) => {
-                    if (err) throw err;
-                    console.log('Data written to file');
-                });
+                console.log('Data written to file');
             });
+            
          }, 3000);
     })
